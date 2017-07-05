@@ -25,12 +25,8 @@ RUN adduser --disabled-password --gecos 'unprivileged user' psr && \
 
 # Create space for ssh daemon and update the system
 RUN echo 'deb http://us.archive.ubuntu.com/ubuntu trusty main multiverse' >> /etc/apt/sources.list && \
-    mkdir /var/run/sshd && \
-    apt-get -y check && \
     apt-get -y update && \
-    apt-get install -y apt-utils apt-transport-https software-properties-common python-software-properties && \
-    apt-get -y update --fix-missing && \
-    apt-get -y upgrade 
+    apt-get install -y apt-utils apt-transport-https software-properties-common python-software-properties 
 
 # Install dependencies
 RUN apt-get --no-install-recommends -y install \
@@ -97,9 +93,9 @@ WORKDIR $PSRHOME
 RUN wget http://www.atnf.csiro.au/people/pulsar/psrcat/downloads/psrcat_pkg.tar.gz && \
     tar -xvf psrcat_pkg.tar.gz -C $PSRHOME && \
     git clone git://git.code.sf.net/p/tempo/tempo && \
-    git clone git@github.com:ghenning/presto1bitmod.git && \
-    git clone https://github.com/scottransom/pyslalib.git 
+	git clone https://github.com/ghenning/presto1bitmod.git && \
     #git clone https://github.com/scottransom/presto.git && \
+    git clone https://github.com/scottransom/pyslalib.git 
 
 # Psrcat
 ENV PSRCAT_FILE $PSRHOME/psrcat_tar/psrcat.db
@@ -117,8 +113,8 @@ RUN ./prepare && \
     ./configure --prefix=$PSRHOME/tempo && \
     make && \
     make install && \
-    mv obsys.dat obsys.dat_ORIGINAL && \
-    wget https://raw.githubusercontent.com/mserylak/pulsar_docker/master/tempo/obsys.dat && \
+    #mv obsys.dat obsys.dat_ORIGINAL && \
+    #wget https://raw.githubusercontent.com/mserylak/pulsar_docker/master/tempo/obsys.dat && \
     rm -rf .git
 
 # pyslalib
@@ -130,13 +126,13 @@ RUN python setup.py install --record list.txt --prefix=$PYSLALIB/install && \
     rm -rf .git
 
 # Presto
-ENV PRESTO $PSRHOME/presto
+ENV PRESTO $PSRHOME/presto1bitmod
 ENV PATH $PATH:$PRESTO/bin
 ENV LD_LIBRARY_PATH $PRESTO/lib
 ENV PYTHONPATH $PYTHONPATH:$PRESTO/lib/python
 WORKDIR $PRESTO/src
 RUN rm -rf ../.git
-#RUN make makewisdom
+RUN make makewisdom
 RUN make prep && \
     make
 WORKDIR $PRESTO/python/ppgplot_src
@@ -149,3 +145,5 @@ RUN make && \
 RUN env | awk '{print "export ",$0}' >> $HOME/.profile
 WORKDIR $HOME
 USER root
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]
